@@ -9,9 +9,9 @@ class Function:
         x = input.data
         y = self.forward(x)
         self.input = input
-        output = Variable(y)
-        output.set_creator(self)
-        self.output = output
+        output = Variable(as_array(y))
+        output.set_creator(self)  # 出力変数に生みの親を覚えさせる
+        self.output = output      # 出力も覚える
         return output
     
     def forward(self, x):
@@ -19,6 +19,11 @@ class Function:
 
     def backward(self, gy):
         raise NotImplementedError()
+
+def as_array(x):
+    if np.isscalar(x):
+        return np.array(x)
+    return x
 
 class Square(Function):
     def forward(self, x):
