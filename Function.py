@@ -5,25 +5,37 @@ from Variable import Variable
 
 class Function:
     """関数の基底クラス"""
-    def __call__(self, input):
-        x = input.data
-        y = self.forward(x)
-        self.input = input
-        output = Variable(as_array(y))
-        output.set_creator(self)  # 出力変数に生みの親を覚えさせる
-        self.output = output      # 出力も覚える
-        return output
+    def __call__(self, *inputs):
+        xs = [x for x in inputs]
+        ys = self.forward(*xs)
+        if not isinstance(ys, tuple):
+            ys = (ys,)
+        outputs = [Variable(as_array(y)) for y in ys]
+
+        for output in outputs:
+            output.set_creator(self)
+        self.inputs = inputs
+        self.outputs = outputs
+        return outputs if len(outputs) > 1 else outputs[0]
     
-    def forward(self, x):
+    def forward(self, xs):
         raise NotImplementedError()
 
-    def backward(self, gy):
+    def backward(self, gys):
         raise NotImplementedError()
 
 def as_array(x):
     if np.isscalar(x):
         return np.array(x)
     return x
+
+class Add(Function):
+    def forward(self, x0, x1):
+        y = x0 + x1
+        return y
+    
+    def backward(self, gy):
+        return gy, gy
 
 class Square(Function):
     def forward(self, x):
