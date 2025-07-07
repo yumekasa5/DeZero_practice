@@ -166,6 +166,23 @@ class Add(Function):
         return gy, gy
 
 
+class Sub(Function):
+    def forward(self, x0, x1):
+        y = x0 - x1
+        return y
+
+    def backward(self, gy):
+        return gy, -gy
+
+
+class Neg(Function):
+    def forward(self, x):
+        return -x
+
+    def backward(self, gy):
+        return -gy
+
+
 class Mul(Function):
     def forward(self, x0, x1):
         y = x0 * x1
@@ -176,23 +193,30 @@ class Mul(Function):
         return gy * x1, gy * x0
 
 
-class Square(Function):
+class Div(Function):
+    def forward(self, x0, x1):
+        y = x0 / x1
+        return y
+
+    def backward(self, gy):
+        x0, x1 = self.inputs[0].data, self.inputs[1].data
+        gy0 = gy / x1
+        gy1 = -gy * x0 / (x1 ** 2)
+        return gy0, gy1
+
+
+class Pow(Function):
+    def __init__(self, c):
+        self.c = c
+
     def forward(self, x):
-        return x ** 2
+        y = x ** self.c
+        return y
 
     def backward(self, gy):
         x = self.inputs[0].data
-        gx = 2 * x * gy
-        return gx
-
-
-class Exp(Function):
-    def forward(self, x):
-        return np.exp(x)
-
-    def backward(self, gy):
-        x = self.inputs[0].data
-        gx = np.exp(x) * gy
+        c = self.c
+        gx = c * x ** (c - 1) * gy
         return gx
 
 
@@ -201,23 +225,47 @@ def add(x0, x1) -> Variable:
     return Add()(x0, x1)
 
 
+def sub(x0, x1) -> Variable:
+    x1 = as_array(x1)
+    return Sub()(x0, x1)
+
+
+def rsub(x0, x1) -> Variable:
+    x1 = as_array(x1)
+    return Sub()(x1, x0)
+
+
 def mul(x0, x1) -> Variable:
     x1 = as_array(x1)
     return Mul()(x0, x1)
 
 
-def square(x):
-    f = Square()
-    return f(x)
+def div(x0, x1) -> Variable:
+    x1 = as_array(x1)
+    return Div()(x0, x1)
 
 
-def exp(x):
-    f = Exp()
-    return f(x)
+def rdiv(x0, x1) -> Variable:
+    x1 = as_array(x1)
+    return Div()(x1, x0)
 
 
-# 演算子のオーバーロードを定義する
-Variable.__add__ = add   # Variableクラスのインスタンスに対して+演算子を使えるようにする
-Variable.__radd__ = add  # Variableクラスのインスタンスに対して+演算子を使えるようにする（右辺のとき）
-Variable.__mul__ = mul   # Variableクラスのインスタンスに対して*演算子を使えるようにする
-Variable.__rmul__ = mul  # Variableクラスのインスタンスに対して*演算子を使えるようにする（右辺のとき）
+def neg(x) -> Variable:
+    return Neg()(x)
+
+
+def pow(x, c) -> Variable:
+    return Pow(c)(x)
+
+
+def setup_variable() -> None:
+    Variable.__add__ = add        # Variableクラスのインスタンスに対して+演算子を使えるようにする
+    Variable.__radd__ = add       # Variableクラスのインスタンスに対して+演算子を使えるようにする（右辺のとき）
+    Variable.__mul__ = mul        # Variableクラスのインスタンスに対して*演算子を使えるようにする
+    Variable.__rmul__ = mul       # Variableクラスのインスタンスに対して*演算子を使えるようにする（右辺のとき）
+    Variable.__neg__ = neg        # Variableクラスのインスタンスに対して-演算子を使えるようにする
+    Variable.__sub__ = sub        # Variableクラスのインスタンスに対して-演算子を使えるようにする
+    Variable.__rsub__ = rsub      # Variableクラスのインスタンスに対して-演算子を使えるようにする（右辺のとき）
+    Variable.__truediv__ = div    # Variableクラスのインスタンスに対して/演算子を使えるようにする
+    Variable.__rtruediv__ = rdiv  # Variableクラスのインスタンスに対して/演算子を使えるようにする（右辺のとき）
+    Variable.__pow__ = pow        # Variableクラスのインスタンスに対して**演算子を使えるようにする
