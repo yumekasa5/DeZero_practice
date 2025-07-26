@@ -83,7 +83,7 @@ class Variable:
                 for y in f.outputs:
                     y().grad = None
 
-    def clearegrad(self):
+    def cleargrad(self):
         """微分を初期化する"""
         self.grad = None
 
